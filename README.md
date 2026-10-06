@@ -37,9 +37,9 @@ A avaliação do **GPM IMERG V07** frente às estações pluviométricas do **CE
 ---
 
 <p align="center">
-  <img src="figures/validacao_imerg_cemaden.png" alt="Validação Espacial e Métricas do IMERG V07 em Goiás" width="800px"/>
+  <img width="2078" height="1497" alt="mapa_rmse" src="https://github.com/user-attachments/assets/be196c96-54db-4bf5-8df3-e18b3f6efc48" />
   <br>
-  <em>Figura 1: Distribuição espacial das métricas de desempenho (r, KGE, PBIAS) e influência topográfica na validação do GPM IMERG V07 com dados CEMADEN.</em>
+  <em>Figura 1: Erro Quadrático Médio (RMSE em mm/dia) entre CEMADEN e GPM IMERG V07 no período 2021–2025. Material suplementar ao artigo do SBSR.</em>
 </p>
 
 ---
