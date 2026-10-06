@@ -8,8 +8,10 @@
 
 Este repositório contém o pipeline computacional e as rotinas de análise desenvolvidas para o artigo submetido no **XXII Simpósio Brasileiro de Sensoriamento Remoto (SBSR)**.
 
-> **Autores:** [Marco Antônio dos Santos], [Klebber Teodomiro Martins Formiga] 
-> **Instituição:** Programa de Pós-Graduação em Ciências Ambientais - Universidade Federal de Goiás (UFG)  
+> **Autores:** [Marco Antônio dos Santos], [Klebber Teodomiro Martins Formiga]
+> 
+> **Instituição:** Programa de Pós-Graduação em Ciências Ambientais - Universidade Federal de Goiás (UFG)
+> 
 > **Contato:** [marco.antonio@discente.ufg.br]
 
 ---
