@@ -1,0 +1,177 @@
+# ============================================================
+# BLOCO 3 — Pareamento espaço-temporal CEMADEN × IMERG
+# ============================================================
+# Para cada estação elegível (41), extrai o pixel IMERG mais
+# próximo (vizinho mais próximo) e monta a série diária pareada
+# (observação, estimativa).
+#
+# Métricas consolidadas por estação (pooled 2021–2025):
+#   n_dias, obs_total_mm, sim_total_mm, Bias_mm, PBIAS_%,
+#   MAE_mm, RMSE_mm, Pearson_r
+#
+# Entrada: CEMADEN_Goias_diario_limpo_2021_2025.xlsx
+#          estacoes_41_coords.csv
+#          estacoes_41_altitude.csv
+#          IMERG_Goias_YYYY.nc  (2021–2025)
+# Saída:   pares_diarios_obs_sim_2021_2025.csv
+#          metricas_pooled_41_estacoes.csv
+# ============================================================
+
+import os
+import numpy as np
+import pandas as pd
+import xarray as xr
+from scipy.stats import pearsonr
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+# Caminhos (ajustar via variável de ambiente)
+PASTA_DADOS = os.environ.get("SBSR_DATA_DIR", "data/processed")
+PASTA_NC    = os.environ.get("SBSR_IMERG_DIR", "data/imerg")
+
+ARQ_LIMPO  = os.path.join(PASTA_DADOS, "CEMADEN_Goias_diario_limpo_2021_2025.xlsx")
+ARQ_COORDS = os.path.join(PASTA_DADOS, "estacoes_41_coords.csv")
+ARQ_ALT    = os.path.join(PASTA_DADOS, "estacoes_41_altitude.csv")
+ARQ_PARES  = os.path.join(PASTA_DADOS, "pares_diarios_obs_sim_2021_2025.csv")
+ARQ_METRIC = os.path.join(PASTA_DADOS, "metricas_pooled_41_estacoes.csv")
+
+ANOS = range(2021, 2026)
+MIN_DIAS_ESTACAO = 100  # amostra mínima para calcular métricas
+
+
+# ------------------------------------------------------------------
+# Função: extrair série IMERG em uma estação, para um ano
+# ------------------------------------------------------------------
+def extrair_serie_imerg(ds, var, lat, lon):
+    """Retorna DataFrame com colunas ['data', 'chuva_imerg'] para a
+    coordenada mais próxima de (lat, lon)."""
+    serie = ds.sel(lon=lon, lat=lat, method="nearest")
+    df = serie[[var]].to_dataframe().reset_index()
+    df = df.rename(columns={"time": "data", var: "chuva_imerg"})
+    df["data"] = pd.to_datetime(df["data"]).dt.normalize()
+    return df[["data", "chuva_imerg"]]
+
+
+# ------------------------------------------------------------------
+# Função: métricas pooled para uma estação
+# ------------------------------------------------------------------
+def metricas_pooled(grupo):
+    obs = grupo["precipitacao_mm"].values
+    sim = grupo["chuva_imerg"].values
+
+    if len(obs) < MIN_DIAS_ESTACAO:
+        return None
+
+    soma_obs = float(np.sum(obs))
+    if soma_obs <= 0:
+        return None
+
+    bias = float(np.mean(sim - obs))
+    pbias = float((np.sum(sim - obs) / soma_obs) * 100)
+    mae = float(mean_absolute_error(obs, sim))
+    rmse = float(np.sqrt(mean_squared_error(obs, sim)))
+
+    r = np.nan
+    if np.std(obs) > 0 and np.std(sim) > 0:
+        r, _ = pearsonr(obs, sim)
+
+    return pd.Series({
+        "n_dias": len(obs),
+        "obs_total_mm": soma_obs,
+        "sim_total_mm": float(np.sum(sim)),
+        "Bias_mm": bias,
+        "PBIAS_%": pbias,
+        "MAE_mm": mae,
+        "RMSE_mm": rmse,
+        "Pearson_r": r,
+    })
+
+
+# ------------------------------------------------------------------
+# 1. Carregar CEMADEN filtrado (41 estações)
+# ------------------------------------------------------------------
+df_cemaden = pd.read_excel(ARQ_LIMPO)
+df_cemaden["data"] = pd.to_datetime(df_cemaden["data"])
+df_cemaden["precipitacao_mm"] = pd.to_numeric(
+    df_cemaden["precipitacao_mm"], errors="coerce"
+)
+df_cemaden = df_cemaden.dropna(subset=["data", "precipitacao_mm"])
+df_cemaden["codigo"] = df_cemaden["codigo"].astype(str)
+
+coords = pd.read_csv(ARQ_COORDS, dtype={"codigo": str})
+df_cemaden = df_cemaden[df_cemaden["codigo"].isin(coords["codigo"])]
+
+print(f"CEMADEN carregado: {len(df_cemaden):,} registros, "
+      f"{df_cemaden['codigo'].nunique()} estações")
+
+
+# ------------------------------------------------------------------
+# 2. Pareamento ano a ano
+# ------------------------------------------------------------------
+pares = []
+
+for ano in ANOS:
+    arq_nc = os.path.join(PASTA_NC, f"IMERG_Goias_{ano}.nc")
+    if not os.path.exists(arq_nc):
+        print(f"[AVISO] {arq_nc} não encontrado — pulando {ano}.")
+        continue
+
+    print(f"[{ano}] pareando IMERG...")
+    ds = xr.open_dataset(arq_nc)
+    var = next((v for v in ds.data_vars if "precip" in v.lower()),
+               list(ds.data_vars)[0])
+
+    df_ano = df_cemaden[df_cemaden["data"].dt.year == ano]
+
+    for _, row in coords.iterrows():
+        cod = row["codigo"]
+        lat, lon = float(row["latitude"]), float(row["longitude"])
+
+        df_est = df_ano[df_ano["codigo"] == cod]
+        if df_est.empty:
+            continue
+
+        try:
+            df_sat = extrair_serie_imerg(ds, var, lat, lon)
+            df_par = pd.merge(
+                df_est[["codigo", "data", "precipitacao_mm"]],
+                df_sat,
+                on="data",
+                how="inner",
+            ).dropna()
+            df_par["ano"] = ano
+            pares.append(df_par)
+        except Exception as e:
+            print(f"  [ERRO] {cod}: {e}")
+
+    ds.close()
+
+df_pares = pd.concat(pares, ignore_index=True)
+df_pares.to_csv(ARQ_PARES, index=False)
+
+print(f"\nPares diários totais: {len(df_pares):,}")
+print(f"Estações com pares : {df_pares['codigo'].nunique()}")
+
+
+# ------------------------------------------------------------------
+# 3. Métricas pooled por estação
+# ------------------------------------------------------------------
+metricas = (
+    df_pares.groupby("codigo")
+    .apply(metricas_pooled, include_groups=False)
+    .dropna(how="all")
+    .reset_index()
+)
+metricas["codigo"] = metricas["codigo"].astype(str)
+
+alt = pd.read_csv(ARQ_ALT, dtype={"codigo": str})
+metricas_final = metricas.merge(alt, on="codigo", how="left")
+metricas_final.to_csv(ARQ_METRIC, index=False)
+
+print(f"\nMétricas pooled — {len(metricas_final)} estações")
+print(f"  PBIAS (%) : {metricas_final['PBIAS_%'].min():+.2f} a "
+      f"{metricas_final['PBIAS_%'].max():+.2f}  "
+      f"(mediana {metricas_final['PBIAS_%'].median():+.2f})")
+print(f"  RMSE      : {metricas_final['RMSE_mm'].min():.2f} a "
+      f"{metricas_final['RMSE_mm'].max():.2f} mm/dia")
+print(f"  Pearson r : {metricas_final['Pearson_r'].min():.3f} a "
+      f"{metricas_final['Pearson_r'].max():.3f}")
