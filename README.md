@@ -1,45 +1,38 @@
-# sbsr2027-precip-analysis
-
 # Validação Espacial do GPM IMERG V07 no Cerrado: Efeito da Altitude nos Vieses de Precipitação em Goiás
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Event: SBSR](https://img.shields.io/badge/Presented%20at-SBSR-green.svg)](https://eventos.inpe.br/)
+Este repositório contém o pipeline computacional e as rotinas de análise desenvolvidas para o artigo submetido ao **XXII Simpósio Brasileiro de Sensoriamento Remoto (SBSR)**.
 
-Este repositório contém o pipeline computacional e as rotinas de análise desenvolvidas para o artigo submetido no **XXII Simpósio Brasileiro de Sensoriamento Remoto (SBSR)**.
-
-> **Autores:** Marco Antônio dos Santos, Klebber Teodomiro Martins Formiga
-> 
-> **Instituição:** Programa de Pós-Graduação em Ciências Ambientais - Universidade Federal de Goiás (UFG)
-> 
-> **Contato:** [marco.antonio@discente.ufg.br]
+* **Autores:** Marco Antônio dos Santos, Klebber Teodomiro Martins Formiga
+* **Instituição:** Programa de Pós-Graduação em Ciências Ambientais (PPGCIAMB) — Universidade Federal de Goiás (UFG)
+* **Contato:** marco.antonio@discente.ufg.br
 
 ---
 
 ## 📌 Visão Geral (Overview)
 
-Este estudo avaliou o desempenho do produto de precipitação diária GPM IMERG V07 (versão final) frente a 43 estações pluviométricas do CEMADEN no estado de Goiás, no período de 2021 a 2025. A base pareada totalizou 71.253 pares diários. O IMERG apresentou correlação moderada (r = 0,63, ρ = 0,77) e leve subestimação (PBIAS = -5.4%), com bom desempenho na detecção de dias chuvosos (POD = 0,89 para ≥ 1 mm/dia), mas limitações em eventos extremos (POD = 0,13, para ≥ 50 mm). O desempenho foi melhor na primavera (KGE = 0,58) e pior no inverno. Observou-se subestimação crescente com a altitude (ρ = −0,54). Recomenda-se correção de viés para aplicações que exijam precisão absoluta.
+Este estudo avaliou o desempenho do produto de precipitação diária **GPM IMERG Final Run V07** frente a **41 estações pluviométricas do CEMADEN** (critério duplo de completude temporal $\ge$ 80%) no estado de Goiás, no período de janeiro de 2021 a setembro de 2025. 
+
+A base pareada totalizou **68.201 pares diários**. O produto apresentou correlação moderada ($r = 0{,}65$; $\text{KGE} = 0{,}57$) e leve subestimação geral ($\text{PBIAS} = -4{,}75\%$; $\text{RMSE} = 8{,}13\text{ mm/dia}$), com alta capacidade de detecção de chuvas fracas ($\text{POD} = 0{,}92$ para $\ge 0{,}1\text{ mm/dia}$), porém com sensibilidade reduzida para eventos extremos ($\text{POD} = 0{,}13$ para $\ge 50\text{ mm/dia}$). 
+
+Identificou-se forte dependência orográfica: o viés volumétrico apresentou correlação inversa e estatisticamente significativa com a altitude ($r = -0{,}54$; $p = 0{,}002$), variando progressivamente de $+5{,}2\%$ (abaixo de 600 m) a $-14{,}8\%$ (acima de 1000 m).
 
 ---
 
 ## 🗺️ Principais Resultados (Highlights)
 
-
-A avaliação do **GPM IMERG V07** frente às estações pluviométricas do **CEMADEN** para o estado de Goiás revelou:
-
-* **Desempenho Geral Moderado:** Métricas globais diárias consistentes com $r = 0{,}63$, $\text{KGE} = 0{,}54$ e leve subestimação geral ($\text{PBIAS} = -5{,}4\%$).
-* **Sensibilidade a Eventos Extremos:** Alta capacidade de detecção para baixos limiares pluviométricos, porém com queda expressiva em eventos severos ($\text{POD} = 0{,}13$ para precipitações $\ge 50\text{ mm/dia}$).
-* **Variabilidade Sazonal & Espacial:** Desempenho superior durante a primavera e menor acurácia no período seco.
-* **Efeito Orográfico:** Forte correlação entre altitude e viés volumétrico ($\rho_{\text{PBIAS}} = -0{,}54$), com subestimação acentuada em cotas elevadas.
-
-> **Recomendação Prática:** O IMERG V07 é adequado como dado complementar para modelagem hidrológica regional em Goiás, mas requer rotinas prévias de **correção de viés (*bias correction*)** quando aplicado à estimativa de extremos pluviométricos ou bacias de relevo acidentado.
+* **Desempenho Geral Moderado:** Concordância consistente na escala diária ($r = 0{,}65$; $R^2 = 0{,}43$; $\text{KGE} = 0{,}57$; $\text{RMSE} = 8{,}13\text{ mm/dia}$) com discreta subestimação global ($\text{PBIAS} = -4{,}75\%$).
+* **Sensibilidade a Eventos Extremos:** Alta detecção em baixos limiares, mas subestimação expressiva dos picos pluviais (ajuste linear: $\text{sim} = 0{,}493 \cdot \text{obs} + 1{,}81$).
+* **Assinatura Orográfica do Viés:** O $\text{PBIAS}$ decai de forma monotônica com o gradiente altimétrico ($r = -0{,}54$), enquanto a dispersão do erro ($\text{RMSE}$) permaneceu estável ($r = +0{,}01$).
+* **Consistência Regional:** A agregação pelas 5 mesorregiões do IBGE confirmou maior subestimação nas mesorregiões mais elevadas (Leste Goiano: $-10{,}7\%$; Centro Goiano: $-5{,}8\%$) e superestimação em cotas baixas (Norte Goiano: $+6{,}7\%$).
 
 ---
 
-<p align="center">
-  <img width="2078" height="1497" alt="mapa_rmse" src="https://github.com/user-attachments/assets/be196c96-54db-4bf5-8df3-e18b3f6efc48" />
-  <br>
-  <em>Figura 1: Erro Quadrático Médio (RMSE em mm/dia) entre CEMADEN e GPM IMERG V07 no período 2021–2025. Material suplementar ao artigo do SBSR.</em>
-</p>
+## 📂 Estrutura do Repositório
 
----
+```text
+.
+├── 00_download_imerg_earthdata.py  # Script de aquisição e recorte via NASA Earthdata
+├── 01_validacao_sbsr2027.py       # Pipeline de validação, cálculo de métricas e figuras
+├── requirements.txt                # Dependências do projeto
+├── LICENSE                         # Licença MIT
+└── README.md
