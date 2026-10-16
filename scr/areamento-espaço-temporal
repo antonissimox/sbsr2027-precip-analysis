@@ -201,6 +201,41 @@ print("\nTabela 1 — Índices Categóricos:")
 print(df_cat.to_string(index=False))
 
 # ==============================================================================
+# 4.1. ANÁLISE SAZONAL (HEMISFÉRIO SUL)
+# ==============================================================================
+def classificar_estacao(mes):
+    if mes in (12, 1, 2): return "Verão"
+    if mes in (3, 4, 5):  return "Outono"
+    if mes in (6, 7, 8):  return "Inverno"
+    return "Primavera"
+
+df_pares["estacao_ano"] = df_pares["data"].dt.month.apply(classificar_estacao)
+
+linhas_saz = []
+for est in ["Verão", "Outono", "Inverno", "Primavera"]:
+    sub = df_pares[df_pares["estacao_ano"] == est]
+    o, s = sub["precipitacao_mm"].values, sub["chuva_imerg"].values
+    if len(o) < 30: continue
+    
+    r_s = np.corrcoef(o, s)[0, 1] if (o.std() > 0 and s.std() > 0) else np.nan
+    soma_o = np.sum(o)
+    pbias_s = ((np.sum(s) - soma_o) / soma_o) * 100 if soma_o > 0 else np.nan
+    rmse_s = np.sqrt(mean_squared_error(o, s))
+    
+    linhas_saz.append({
+        "Estação": est,
+        "Média obs. (mm/dia)": round(o.mean(), 2),
+        "r": round(r_s, 2),
+        "PBIAS (%)": round(pbias_s, 1),
+        "RMSE (mm/dia)": round(rmse_s, 2),
+        "KGE": round(calc_kge(o, s), 2)
+    })
+
+df_sazonal = pd.DataFrame(linhas_saz)
+print("\nMétricas Sazonais (Artigo - Seção 3):")
+print(df_sazonal.to_string(index=False))
+
+# ==============================================================================
 # 5. MÉTRICAS CONSOLIDADAS POR ESTAÇÃO
 # ==============================================================================
 linhas_est = []
