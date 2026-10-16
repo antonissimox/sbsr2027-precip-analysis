@@ -1,4 +1,4 @@
-# Python & Ambientes Virtuais
+# Ambientes Virtuais e Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -7,7 +7,11 @@ venv/
 env/
 .ipynb_checkpoints/
 
-# Dados Pesados & Formatos Geoespaciais (mantenha fora do repositório)
+# Credenciais e Autenticação (Segurança)
+.netrc
+.urs_cookies
+
+# Dados Pesados e Formatos Geoespaciais (fora do controle de versão)
 *.nc
 *.nc4
 *.hdf5
@@ -25,6 +29,8 @@ env/
 *.lock
 *.log
 
-# Pastas de dados brutos
-data/raw/*
-!data/raw/.gitkeep
+# Pastas de dados brutos locais
+dados_imerg/
+dados_imerg/raw/*
+dados_imerg/diario/*
+!dados_imerg/.gitkeep
